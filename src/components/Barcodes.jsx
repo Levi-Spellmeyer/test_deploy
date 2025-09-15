@@ -4,7 +4,6 @@ import { BrowserMultiFormatReader } from '@zxing/library';
 export default function Barcodes() {
   const videoRef = useRef(null);
   const [barcode, setBarcode] = useState('');
-  const [scanned, setScanned] = useState(false);
 
   useEffect(() => {
     const codeReader = new BrowserMultiFormatReader();
@@ -14,26 +13,20 @@ export default function Barcodes() {
       .then(videoInputDevices => {
         // Select the rear camera if available
         selectedDeviceId = videoInputDevices.length > 1
-          ? videoInputDevices.length - 1
-          : 0;
+          ? videoInputDevices[videoInputDevices.length - 1].deviceId
+          : videoInputDevices[0].deviceId;
 
+        // Start continuous scanning
         codeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.current, (result, err) => {
-          if (result && !scanned) {
-            const scannedText = result.getText();
-            setBarcode(scannedText);
-            setScanned(true);
-
-            // Play a ding on successful scan
+          if (result) {
+            const scannedValue = result.getText();
+            setBarcode(scannedValue);
+            console.log('Scanned barcode:', scannedValue);
+            alert(`Scanned barcode: ${scannedValue}`);
+            // Play a ding sound on successful scan
             const audio = new Audio('/ding.mp3');
             audio.play();
-
-            // Show an alert with the scanned number
-            alert(`Scanned Barcode: ${scannedText}`);
-
-            // Optional: reset scanned after 1 second to allow continuous scanning
-            setTimeout(() => setScanned(false), 1000);
           }
-
           if (err && !(err.name === 'NotFoundException')) {
             console.error(err);
           }
@@ -41,8 +34,8 @@ export default function Barcodes() {
       })
       .catch(err => console.error(err));
 
-    return () => codeReader.reset(); // Stop camera on unmount
-  }, [scanned]);
+    return () => codeReader.reset(); // Stop camera when component unmounts
+  }, []);
 
   return (
     <section className="panel">
@@ -52,7 +45,7 @@ export default function Barcodes() {
           ref={videoRef}
           style={{ width: '100%', borderRadius: '12px', background: '#000' }}
         />
-        {/* Camera button overlay */}
+        {/* Optional Camera Button Overlay */}
         <button
           className="btn"
           style={{
@@ -62,7 +55,7 @@ export default function Barcodes() {
             transform: 'translateX(-50%)',
             zIndex: 10
           }}
-          onClick={() => setScanned(false)} // optional manual scan trigger
+          onClick={() => console.log('Manual scan trigger (optional)')}
         >
           📷 Scan
         </button>
